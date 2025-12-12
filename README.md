@@ -3,9 +3,9 @@ An isometric Rougelike game (and the required basic tools to make the game) for 
 
 Under construction.
 
-Tools:
+##Tools:
 
-Ifftotiles.bas
+###Ifftotiles.bas
 This program loads a 32 colour IFF image and creates custom FCM characters from it (places them to the $40000- area).
 It saves this character data and the palette data into a aseparate files.
 RUN 9000 is an example how to load the palette data back.
