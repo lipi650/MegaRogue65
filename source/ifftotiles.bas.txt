@@ -1,0 +1,81 @@
+   40 bo&=0: rem border
+   50 dim r&(32):dim g&(32): dim b&(32)
+   90 mem 1,3   : screen clr
+  100 screen 1,320,200,5
+  120 loadiff"dungeontiles.iff"
+  122 dopen#5,"@palette32.pal",w
+  125 for i=0to31
+  126 r&(i)=rpalette(1,i,0):g&(i)=rpalette(1,i,1):b&(i)=rpalette(1,i,2)
+  127 print#5,chr$(r&(i));chr$(g&(i));chr$(b&(i));
+  128 nexti
+  129 dclose#5
+  130 getkey a$
+  135 cp=0
+  138 for j=0to24
+  140  for i=0to39
+  150   for y=0to7
+  160    for x=0to7
+  170 p=pixel(i*8+x,y+j*8)
+  180 wpoke $40000+cp,p
+  190 cp=cp+1 : border bo& : bo&=bo&+1
+  195 if cp=40 then edma 0,$a00,$40000,$8000000+(i*$a00): cp=0
+  200    next x
+  210   next y
+  220  next i
+  225 next j
+  840 screen close 1
+  860 edma 0,64000 ,$8000000,$40000
+  865 for i=0to31
+  866 palette color i,r&(i),g&(i),b&(i): nexti
+  867 gosub 5000
+  870 rem getkey
+  873 bsave"@fcmchrs.chr",p($40000)to p($4fa00)
+  875 rem dopen#5,"@palette32.pal",w
+  876 rem for i=0to31
+  877 rem printi
+  878 rem print#5, rpalette(1,i,1)   :next i
+  879 rem dclose#5
+  895 rem palette restore
+  900 end
+ 4999 rem =========setup rrb environment===========
+ 5000 s1=wpeek($d062):s2=wpeek($d060): rem store screen pointer
+ 5010 rem ==== enable seam mode ====
+ 5020 setbit $d054,2: setbit $d054,0 :rem fclrhi, chr16
+ 5030 clrbit $d031,7: poke$d058,160:  rem set 40 column mode
+ 5040 wpoke $d060,$0000: wpoke $d062,$5:rem set screen pointer to $50000
+ 5050 cc=wpeek($d05e)
+ 5060 poke $d05e, 80: rem set chrcnt
+ 5070 rem ==========================
+ 5080 for i=0to1999*2 step2 :wpoke$50000+i,$0066:nexti:rem fill the whole screen.
+ 5090 for i=0to1999*2 step2 :wpoke$ff80000+i,$0300:nexti:rem fill colour ram
+ 5100 getkey a$
+ 5110 rem === gotox ($0090) move to column 40 ($28)
+ 5120 wpoke $50050,$0028
+ 5130 wpoke $ff80050,$0090
+ 5140 rem ===layer a new character on the already printed one
+ 5150 wpoke $50052,$1000 : wpoke $50054,$1001 : wpoke $50056,$1002: wpoke $50058,$1003
+ 5152 wpoke $5005a,$1004 : wpoke $5005c,$1005 : wpoke $5005e,$1006: wpoke $50060,$1007
+ 5160 wpoke $ff80052,$0100
+ 5170 rem === close the line by gotox and position to the far right
+ 5180 rem === the line can be closed anywhere earlier (eg. from $50054)
+ 5190 wpoke $50096,$0140
+ 5200 wpoke $50098,$0000
+ 5210 wpoke $ff80096,$0010
+ 5220 wpoke $ff80098,$0000
+ 5230 getkey a$
+ 5240 rem ===== reset settings =====
+ 5250 wpoke $d060,$800: wpoke$d062,$0000
+ 5260 clrbit $d054,2: clrbit $d054,0 :rem fclrhi, chr16
+ 5270 setbit $d031,7: poke$d058,80 :rem 80 column mode
+ 5280 return
+ 8999 rem howto read palette data
+ 9000 dopen#5,"palette32.pal"
+ 9001 i=0
+ 9002 do while i<20
+ 9004 get#5,r$ ,g$ ,b$
+ 9005 print i,asc(r$),asc(g$),asc(b$)
+ 9006 palette color i,asc(r$),asc(g$) ,asc(b$)
+ 9007 i=i+1
+ 9008 loop
+ 9009   dclose#5
+ 9010 end
