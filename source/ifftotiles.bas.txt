@@ -18,7 +18,7 @@
   170 p=pixel(i*8+x,y+j*8)
   180 wpoke $40000+cp,p
   190 cp=cp+1 : border bo& : bo&=bo&+1
-  195 if cp=40 then edma 0,$a00,$40000,$8000000+(i*$a00): cp=0
+  195 if cp=40 then edma 0,$a00,$40000,$8000000+(j*$a00): cp=0
   200    next x
   210   next y
   220  next i
