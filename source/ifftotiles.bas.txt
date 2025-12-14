@@ -15,10 +15,9 @@
   140  for i=0to39
   150   for y=0to7
   160    for x=0to7
-  170 p=pixel(i*8+x,y+j*8)
-  180 wpoke $40000+cp,p
-  190 cp=cp+1 : border bo& : bo&=bo&+1
-  195 if cp=40 then edma 0,$a00,$40000,$8000000+(j*$a00): cp=0
+  170     p=pixel(i*8+x,y+j*8)
+  180     edma 3,1,p,$8000000+j*2560+i*64+y*8+x
+  190     border bo& : bo&=bo&+1
   200    next x
   210   next y
   220  next i
@@ -79,3 +78,12 @@
  9008 loop
  9009   dclose#5
  9010 end
+10000 for j=0to24
+10010 for i=0to39
+10020 for y=0to7
+10030 for x=0to7
+10050 print j*i*y+x;
+10100 next x
+10110 next y
+10120 next i
+10130 next j

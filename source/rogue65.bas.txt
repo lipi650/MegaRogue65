@@ -1,10 +1,15 @@
-   
-  40 dim ro%(6,6),st%(1), ex%(1),ke%(1),cu%(1): rem rooms, start, exit, key, current room
-  45 dim mp%(6,6),hc%(1),kc%(1): rem map, hero,key coordinates
+   40 dim ro%(6,6),st%(1), ex%(1),ke%(1),cu%(1): rem rooms, start, exit, key, current room
+   45 dim mp%(6,6),hc%(1),kc%(1): rem map, hero,key coordinates
    50 dim r(32):dim g(32): dim b(32)
-
-  867 gosub 5000
+   90 mem 1,3: screen clr
+  100 gosub 7000 :rem load palette
+  105 bload"fcmchrs.chr",p($40000)
+  110 rem edma 0,64000,$8000000,$40000
+  115 gosub 5000: rem setup fcm-rrb environment
+  120 gosub 5510: rem set starting room and generate 5x5 map
+  130 gosub 6500: rem draw map
   870 getkey a$
+  874 gosub 5230: rem reset settings
   875 palette restore
   900 end
  4999 rem =========setup rrb environment===========
@@ -16,15 +21,15 @@
  5050 cc=wpeek($d05e)
  5060 poke $d05e, 80: rem set chrcnt
  5070 rem ==========================
- 5080 for i=0to1999*2 step2 :wpoke$50000+i,$0066:nexti:rem fill the whole screen.
+ 5080 for i=0to1999*2 step2 :wpoke$50000+i,$0020:nexti:rem fill the whole screen.
  5090 for i=0to1999*2 step2 :wpoke$ff80000+i,$0300:nexti:rem fill colour ram
  5100 getkey a$
  5110 rem === gotox ($0090) move to column 40 ($28)
  5120 wpoke $50050,$0028
  5130 wpoke $ff80050,$0090
  5140 rem ===layer a new character on the already printed one
- 5150 wpoke $50052,$1000 : wpoke $50054,$1001 : wpoke $50056,$1002: wpoke $50058,$1003
- 5152 wpoke $5005a,$1004 : wpoke $5005c,$1005 : wpoke $5005e,$1006: wpoke $50060,$1007
+ 5150 wpoke $50052,$1000 : wpoke $50054,$1001 : wpoke $50056,$1002: wpoke $50058,$1003: wpoke $5005a,$1004: wpoke $5005c,$1005
+ 5152 wpoke $5005e,$1006 : wpoke $50060,$1007 :wpoke $50062,$1028: wpoke $50064,$1029
  5160 wpoke $ff80052,$0100
  5170 rem === close the line by gotox and position to the far right
  5180 rem === the line can be closed anywhere earlier (eg. from $50054)
@@ -32,41 +37,39 @@
  5200 wpoke $50098,$0000
  5210 wpoke $ff80096,$0010
  5220 wpoke $ff80098,$0000
+ 5225 return
  5230 getkey a$
  5240 rem ===== reset settings =====
  5250 wpoke $d060,$800: wpoke$d062,$0000
  5260 clrbit $d054,2: clrbit $d054,0 :rem fclrhi, chr16
  5270 setbit $d031,7: poke$d058,80 :rem 80 column mode
  5280 return
-
-5510 rem =========== set starting room
-5520 st%(0)=int(rnd(0)*5)+1: st%(1)=int(rnd(0)*5)+1
-5525 cu%(0)=st%(0) :cu%(1)=st%(1)
-5530 rem ===unset all rooms
-5540 for x=0to6
-5550 for y=0to6
-5560 ro%(x,y)=0
-5570 next y
-5580 next x
-5590 rem set starting room doors 1n 2e 4s 8w at least 2 exits
-5600 ro%(st%(0),st%(1))=int(rnd(0)*16)
-5602 if st%(0)=1 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and7
-5604 if st%(0)=5 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and13
-5606 if st%(1)=1 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and11
-5608 if st%(1)=5 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and14
-5610 d=(ro%(st%(0),st%(1))and1)+((ro%(st%(0),st%(1))and2)/2)+((ro%(st%(0),st%(1))and4)/4)+((ro%(st%(0),st%(1))and8)/8)
-5611 if (ro%(st%(0),st%(1))and4)<>4 then hc%(0)=5 : hc%(1)=10: rem hero coordinates
-5612 if (ro%(st%(0),st%(1))and2)<>2 then hc%(0)=10: hc%(1)=5: rem hero coordinates
-5613 if (ro%(st%(0),st%(1))and8)<>8 then hc%(0)=1 : hc%(1)=5: rem hero coordinates
-5614 if (ro%(st%(0),st%(1))and1)<>1 then hc%(0)=5 : hc%(1)=1: rem hero coordinates
-5615 if d<2 then 5600
-5616 if d=4 then 5600
-5630 for z=1to8
-5640 for y=1to5
-5650 for x=1to5
-5655 rem =======================================
-
-
+ 5510 rem =========== set starting room
+ 5520 st%(0)=int(rnd(0)*5)+1: st%(1)=int(rnd(0)*5)+1
+ 5525 cu%(0)=st%(0) :cu%(1)=st%(1)
+ 5530 rem ===unset all rooms
+ 5540 for x=0to6
+ 5550 for y=0to6
+ 5560 ro%(x,y)=0
+ 5570 next y
+ 5580 next x
+ 5590 rem set starting room doors 1n 2e 4s 8w at least 2 exits
+ 5600 ro%(st%(0),st%(1))=int(rnd(0)*16)
+ 5602 if st%(0)=1 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and7
+ 5604 if st%(0)=5 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and13
+ 5606 if st%(1)=1 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and11
+ 5608 if st%(1)=5 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and14
+ 5610 d=(ro%(st%(0),st%(1))and1)+((ro%(st%(0),st%(1))and2)/2)+((ro%(st%(0),st%(1))and4)/4)+((ro%(st%(0),st%(1))and8)/8)
+ 5611 if (ro%(st%(0),st%(1))and4)<>4 then hc%(0)=5 : hc%(1)=10: rem hero coordinates
+ 5612 if (ro%(st%(0),st%(1))and2)<>2 then hc%(0)=10: hc%(1)=5: rem hero coordinates
+ 5613 if (ro%(st%(0),st%(1))and8)<>8 then hc%(0)=1 : hc%(1)=5: rem hero coordinates
+ 5614 if (ro%(st%(0),st%(1))and1)<>1 then hc%(0)=5 : hc%(1)=1: rem hero coordinates
+ 5615 if d<2 then 5600
+ 5616 if d=4 then 5600
+ 5630 for z=1to8
+ 5640 for y=1to5
+ 5650 for x=1to5
+ 5655 rem =======================================
  6000 rem -------mapgen procedure-------
  6005 rm=int(rnd(0)*15+1)
  6015 if ro%(x,y)>0 then rm=ro%(x,y): goto 6900 :rem already processed
@@ -80,24 +83,30 @@
  6120 if y=5 then rm=rmand14
  6130 if y=1 then rm=rmand11
  6150 if ro%(x+1,y)=0 then 6170
- 6160  if (ro%(x+1,y)and8)=0 then rm=rmand13
+ 6160 if (ro%(x+1,y)and8)=0 then rm=rmand13
  6170 if ro%(x-1,y)=0 then 6190
- 6180  if (ro%(x-1,y)and2)=0 then rm=rmand7
+ 6180 if (ro%(x-1,y)and2)=0 then rm=rmand7
  6190 if ro%(x,y+1)=0 then 6210
- 6200  if (ro%(x,y+1)and4)=0 then rm=rmand14
+ 6200 if (ro%(x,y+1)and4)=0 then rm=rmand14
  6210 if ro%(x,y-1)=0 then 6900
- 6220  if (ro%(x,y-1)and1)=0 then rm=rmand11
+ 6220 if (ro%(x,y-1)and1)=0 then rm=rmand11
+ 6290 return
+ 6499 rem === draw map ===
+ 6500 for y=0to4
+ 6505 for x=0to4
+ 6510  if ro%(x,y)=1 then wpoke$50000+y*160+x*2,$1028 :rem north
+ 6600 next x
+ 6610 next y
+ 6620 return
  6900 return
  6901 rem ------------------------------
-
- 8999 rem === load palette data
- 9000 dopen#5,"palette32.pal"
- 9001 i=0
- 9002 do while i<20
- 9004 get#5,r$ ,g$ ,b$
- 9005 print i,asc(r$),asc(g$),asc(b$)
- 9006 palette color i,asc(r$),asc(g$) ,asc(b$)
- 9007 i=i+1
- 9008 loop
- 9009   dclose#5
- 9010 end
+ 6999 rem === load palette
+ 7000 dopen#5,"palette32.pal"
+ 7010 i=0
+ 7020 do while i<32
+ 7030 get#5,r$,g$,b$
+ 7040 palette color i,asc(r$),asc(g$),asc(b$)
+ 7050 i=i+1
+ 7060 loop
+ 7070 dclose#5
+ 7080 return
