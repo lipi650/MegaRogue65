@@ -1,0 +1,142 @@
+   90 sprite load "spr-hero"
+  100 dim ro%(6,6),st%(1), ex%(1),ke%(1),cu%(1): rem rooms, start, exit, key, current room
+  105 dim mp%(6,6),hc%(1),kc%(1): rem map, hero,key coordinates
+  110 rem set starting room
+  120 st%(0)=int(rnd(0)*5)+1: st%(1)=int(rnd(0)*5)+1
+  125 cu%(0)=st%(0) :cu%(1)=st%(1)
+  130 rem unset all rooms
+  140 for x=0to6
+  150 for y=0to6
+  160 ro%(x,y)=0
+  170 next y
+  180 next x
+  190 rem set starting room doors 1n 2e 4s 8w at least 2 exits
+  200 ro%(st%(0),st%(1))=int(rnd(0)*16)
+  202 if st%(0)=1 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and7
+  204 if st%(0)=5 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and13
+  206 if st%(1)=1 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and11
+  208 if st%(1)=5 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and14
+  210 d=(ro%(st%(0),st%(1))and1)+((ro%(st%(0),st%(1))and2)/2)+((ro%(st%(0),st%(1))and4)/4)+((ro%(st%(0),st%(1))and8)/8)
+  211 if (ro%(st%(0),st%(1))and4)<>4 then hc%(0)=5 : hc%(1)=10: rem hero coordinates
+  212 if (ro%(st%(0),st%(1))and2)<>2 then hc%(0)=10: hc%(1)=5: rem hero coordinates
+  213 if (ro%(st%(0),st%(1))and8)<>8 then hc%(0)=1 : hc%(1)=5: rem hero coordinates
+  214 if (ro%(st%(0),st%(1))and1)<>1 then hc%(0)=5 : hc%(1)=1: rem hero coordinates
+  215 if d<2 then 200
+  216 if d=4 then 200
+  230 for z=1to8
+  240 for y=1to5
+  250 for x=1to5
+  255 rem
+  260 gosub 6000 : rem generate map
+  270 ro%(x,y)=rm
+  370 next x
+  380 next y
+  390 next z
+  391 rem ---start screen---
+  395 gosub 7000
+  400 rem ----initializations------
+  409 rem place key
+  410 ke%(0)=int(rnd(0)*5)+1:ke%(1)=int(rnd(1)*5)+1
+  415 if ro%(ke%(0),ke%(1))=0 then goto 410
+  720  color 12
+  991 rem -game loop--------
+  995 gosub 5000 : rem print map
+ 1000 gosub 7200 : rem display room
+ 1010 gosub 7600 : rem place sprites
+ 1100 gosub 8000 : rem get key and move hero
+ 1990 goto 995
+ 2000 end
+ 2001 rem --------end of game loop-----------
+ 5000 rem print map
+ 5010 cursor 0,0 :print "current room:" cu%(0), cu%(1), "n:1, e:2, s:4, w:8";
+ 5012 color 12
+ 5015 for a=1to6
+ 5020 for b=1to6
+ 5035 if ro%(a,b)=0 then mp%(a,b)=113
+ 5040 if ro%(a,b)=1 then mp%(a,b)=94
+ 5045 if ro%(a,b)=2 then mp%(a,b)=62
+ 5050 if ro%(a,b)=4 then mp%(a,b)=86
+ 5055 if ro%(a,b)=8 then mp%(a,b)=60
+ 5060 if ro%(a,b)=6 then mp%(a,b)=176 :rem e-s
+ 5065 if ro%(a,b)=10then mp%(a,b)=96  :rem e-w
+ 5070 if ro%(a,b)=5 then mp%(a,b)=98  :rem n-s
+ 5075 if ro%(a,b)=12then mp%(a,b)=174 :rem s-w
+ 5080 if ro%(a,b)=3 then mp%(a,b)=173 :rem n-e
+ 5085 if ro%(a,b)=9 then mp%(a,b)=189 :rem n-w
+ 5090 if ro%(a,b)=11then mp%(a,b)=177 :rem n-w-e
+ 5095 if ro%(a,b)=14then mp%(a,b)=178 :rem s-w-e
+ 5096 if ro%(a,b)=13then mp%(a,b)=179 :rem s-w-n
+ 5097 if ro%(a,b)=7 then mp%(a,b)=171 :rem s-w-n
+ 5098 if ro%(a,b)=15then mp%(a,b)=123 :rem s-w-n
+ 5100 next b
+ 5110 next a
+ 5150 for c=1to5
+ 5200 cursor 74,(8-c):print chr$(mp%(1,c))chr$(mp%(2,c))chr$(mp%(3,c))chr$(mp%(4,c))chr$(mp%(5,c))
+ 5300 next c
+ 5305 d=cu%(0) : e=cu%(1) : c@&(73+d,8-e)=3
+ 5400 return
+ 6000 rem -------mapgen procedure-------
+ 6005 rm=int(rnd(0)*15+1)
+ 6015 if ro%(x,y)>0 then rm=ro%(x,y): goto 6900 :rem already processed
+ 6020 if (ro%(x+1,y)and8) + (ro%(x-1,y)and2) + (ro%(x,y+1)and4) + (ro%(x,y-1)and1)=0 then rm=0:goto 6900 :rem no connection
+ 6030 if (ro%(x+1,y)and8)=8 then rm=rmor2: rem east neighbor.
+ 6040 if (ro%(x-1,y)and2)=2 then rm=rmor8: rem west neighbor.
+ 6050 if (ro%(x,y+1)and4)=4 then rm=rmor1: rem north neighbor.
+ 6060 if (ro%(x,y-1)and1)=1 then rm=rmor4: rem south neighbor.
+ 6100 if x=5 then rm=rmand13
+ 6110 if x=1 then rm=rmand7
+ 6120 if y=5 then rm=rmand14
+ 6130 if y=1 then rm=rmand11
+ 6150 if ro%(x+1,y)=0 then 6170
+ 6160  if (ro%(x+1,y)and8)=0 then rm=rmand13
+ 6170 if ro%(x-1,y)=0 then 6190
+ 6180  if (ro%(x-1,y)and2)=0 then rm=rmand7
+ 6190 if ro%(x,y+1)=0 then 6210
+ 6200  if (ro%(x,y+1)and4)=0 then rm=rmand14
+ 6210 if ro%(x,y-1)=0 then 6900
+ 6220  if (ro%(x,y-1)and1)=0 then rm=rmand11
+ 6900 return
+ 6901 rem ------------------------------
+ 6999 rem ---start screen---
+ 7000 scnclr : border 11 :background 11 : color 1
+ 7005 cursor 28,5
+ 7010 print "dungeon dweller 65"
+ 7020 cursor 0,12
+ 7030 print "in this game you search treasures in the dungeon."
+ 7040 print "fight monsters, drink potions and search for the key to go deeper."
+ 7050 cursor 25,24
+ 7060 print"press any key to continue.": getkey a$:scnclr
+ 7070 return
+ 7190 rem ------display room---------
+ 7200 for y=1to10
+ 7210 for y=1to10
+ 7220 for x=1to10
+ 7230 a= 10+4*x : b=2*y+1
+ 7235 cursor a,b
+ 7240 print"O{CBM-Y}{CBM-Y}P";:color 12
+ 7242 cursor a,b+1
+ 7245 print"L{CBM-P}{CBM-P}{SHIFT-@}":color 12
+ 7250 next x
+ 7260 next y
+ 7265 cursor 1,1
+ 7266 if(ro%(cu%(0),cu%(1))and1)=1 then c@&(30,3)=14:c@&(31,3)=14:c@&(32,3)=14:c@&(33,3)=14:c@&(34,3)=14:c@&(35,3)=14:c@&(36,3)=14:c@&(37,3)=14
+ 7267 if(ro%(cu%(0),cu%(1))and4)=4 then c@&(30,22)=14:c@&(31,22)=14:c@&(32,22)=14:c@&(33,22)=14:c@&(34,22)=14:c@&(35,22)=14:c@&(36,22)=14:c@&(37,22)=14
+ 7268 if(ro%(cu%(0),cu%(1))and2)=2 then c@&(53,11)=14:c@&(53,12)=14:c@&(53,13)=14:c@&(53,14)=14
+ 7269 if(ro%(cu%(0),cu%(1))and8)=8 then c@&(14,11)=14:c@&(14,12)=14:c@&(14,13)=14:c@&(14,14)=14 :rem color the exits
+ 7500 return
+ 7599 rem ----place sprites----
+ 7600 sprite 0,1,1,0,0,0,0
+ 7610 movspr 0,(hc%(0)*16)+61,(hc%(1)*16)+53
+ 7620 if (cu%(0)=ke%(0))and(cu%(1)=ke%(1))then sprite 7,1,1,0,0,0,0:movspr 0,(kc%(0)*16)+61,(kc%(1)*16)+53
+ 7900 return
+ 7999 rem ---get key and move hero---
+ 8000 getkey a$
+ 8010 if a$=chr$(29) and(hc%(0)=10) and((ro%(cu%(0),cu%(1))and2)=2)and((hc%(1)=5)or(hc%(1)=6))then cu%(0)=cu%(0)+1:hc%(0)=1:goto8030
+ 8020 if a$=chr$(29) and(hc%(0)<10) then hc%(0)=hc%(0)+1
+ 8030 if a$=chr$(157) and(hc%(0)=1) and((ro%(cu%(0),cu%(1))and8)=8)and((hc%(1)=5)or(hc%(1)=6))then cu%(0)=cu%(0)-1:hc%(0)=10:goto8050
+ 8040 if a$=chr$(157) and(hc%(0)>1) then hc%(0)=hc%(0)-1
+ 8050 if a$=chr$(145) and(hc%(1)=1) and((ro%(cu%(0),cu%(1))and1)=1)and((hc%(0)=5)or(hc%(0)=6))then cu%(1)=cu%(1)+1:hc%(1)=10:goto 8070
+ 8060 if a$=chr$(145) and(hc%(1)>1) then hc%(1)=hc%(1)-1
+ 8070 if a$=chr$(17) and(hc%(1)=10) and((ro%(cu%(0),cu%(1))and4)=4)and((hc%(0)=5)or(hc%(0)=6))then cu%(1)=cu%(1)-1:hc%(1)=1:goto 8500
+ 8080 if a$=chr$(17) and(hc%(1)<10) then hc%(1)=hc%(1)+1
+ 8500 return

@@ -1,15 +1,15 @@
-   40 dim ro%(6,6),st%(1), ex%(1),ke%(1),cu%(1): rem rooms, start, exit, key, current room
-   45 dim mp%(6,6),hc%(1),kc%(1): rem map, hero,key coordinates
-   50 dim r(32):dim g(32): dim b(32)
+   40 dim ro(6,6), vs(6,6) : rem rooms, visited rooms
+   45 sx=0:sy=0:ex=0:ey=0:kx=0:ky=0:cx=0:cy=0 :rem start,exit,key,current room
+   50 dim r(32):dim g(32): dim b(32): rem palette values
    90 mem 1,3: screen clr
   100 gosub 7000 :rem load palette
   105 bload"fcmchrs.chr",p($40000)
   110 rem edma 0,64000,$8000000,$40000
   115 gosub 5000: rem setup fcm-rrb environment
-  120 gosub 5510: rem set starting room and generate 5x5 map
-  130 gosub 6500: rem draw map
+  120 gosub 7100: rem set starting room and generate 5x5 map
+  130 gosub 6500: rem  draw map
   870 getkey a$
-  874 gosub 5230: rem reset settings
+  874 gosub 5250: rem reset settings
   875 palette restore
   900 end
  4999 rem =========setup rrb environment===========
@@ -25,6 +25,7 @@
  5090 for i=0to1999*2 step2 :wpoke$ff80000+i,$0300:nexti:rem fill colour ram
  5100 getkey a$
  5110 rem === gotox ($0090) move to column 40 ($28)
+ 5112 rem need to put a for-next loop to do it for all rows
  5120 wpoke $50050,$0028
  5130 wpoke $ff80050,$0090
  5140 rem ===layer a new character on the already printed one
@@ -44,61 +45,28 @@
  5260 clrbit $d054,2: clrbit $d054,0 :rem fclrhi, chr16
  5270 setbit $d031,7: poke$d058,80 :rem 80 column mode
  5280 return
- 5510 rem =========== set starting room
- 5520 st%(0)=int(rnd(0)*5)+1: st%(1)=int(rnd(0)*5)+1
- 5525 cu%(0)=st%(0) :cu%(1)=st%(1)
- 5530 rem ===unset all rooms
- 5540 for x=0to6
- 5550 for y=0to6
- 5560 ro%(x,y)=0
- 5570 next y
- 5580 next x
- 5590 rem set starting room doors 1n 2e 4s 8w at least 2 exits
- 5600 ro%(st%(0),st%(1))=int(rnd(0)*16)
- 5602 if st%(0)=1 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and7
- 5604 if st%(0)=5 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and13
- 5606 if st%(1)=1 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and11
- 5608 if st%(1)=5 then ro%(st%(0),st%(1))=ro%(st%(0),st%(1))and14
- 5610 d=(ro%(st%(0),st%(1))and1)+((ro%(st%(0),st%(1))and2)/2)+((ro%(st%(0),st%(1))and4)/4)+((ro%(st%(0),st%(1))and8)/8)
- 5611 if (ro%(st%(0),st%(1))and4)<>4 then hc%(0)=5 : hc%(1)=10: rem hero coordinates
- 5612 if (ro%(st%(0),st%(1))and2)<>2 then hc%(0)=10: hc%(1)=5: rem hero coordinates
- 5613 if (ro%(st%(0),st%(1))and8)<>8 then hc%(0)=1 : hc%(1)=5: rem hero coordinates
- 5614 if (ro%(st%(0),st%(1))and1)<>1 then hc%(0)=5 : hc%(1)=1: rem hero coordinates
- 5615 if d<2 then 5600
- 5616 if d=4 then 5600
- 5630 for z=1to8
- 5640 for y=1to5
- 5650 for x=1to5
- 5655 rem =======================================
- 6000 rem -------mapgen procedure-------
- 6005 rm=int(rnd(0)*15+1)
- 6015 if ro%(x,y)>0 then rm=ro%(x,y): goto 6900 :rem already processed
- 6020 if (ro%(x+1,y)and8) + (ro%(x-1,y)and2) + (ro%(x,y+1)and4) + (ro%(x,y-1)and1)=0 then rm=0:goto 6900 :rem no connection
- 6030 if (ro%(x+1,y)and8)=8 then rm=rmor2: rem east neighbor.
- 6040 if (ro%(x-1,y)and2)=2 then rm=rmor8: rem west neighbor.
- 6050 if (ro%(x,y+1)and4)=4 then rm=rmor1: rem north neighbor.
- 6060 if (ro%(x,y-1)and1)=1 then rm=rmor4: rem south neighbor.
- 6100 if x=5 then rm=rmand13
- 6110 if x=1 then rm=rmand7
- 6120 if y=5 then rm=rmand14
- 6130 if y=1 then rm=rmand11
- 6150 if ro%(x+1,y)=0 then 6170
- 6160 if (ro%(x+1,y)and8)=0 then rm=rmand13
- 6170 if ro%(x-1,y)=0 then 6190
- 6180 if (ro%(x-1,y)and2)=0 then rm=rmand7
- 6190 if ro%(x,y+1)=0 then 6210
- 6200 if (ro%(x,y+1)and4)=0 then rm=rmand14
- 6210 if ro%(x,y-1)=0 then 6900
- 6220 if (ro%(x,y-1)and1)=0 then rm=rmand11
- 6290 return
  6499 rem === draw map ===
- 6500 for y=0to4
- 6505 for x=0to4
- 6510  if ro%(x,y)=1 then wpoke$50000+y*160+x*2,$1028 :rem north
+ 6500 for y=1to5
+ 6505 for x=1to5
+ 6510  if ro(x,y)=1 then wpoke$50000+y*160+x*2+68,$1028 :rem north
+ 6511  if ro(x,y)=2 then wpoke$50000+y*160+x*2+68,$1029 :rem east
+ 6512  if ro(x,y)=3 then wpoke$50000+y*160+x*2+68,$1078 :rem n-e
+ 6513  if ro(x,y)=4 then wpoke$50000+y*160+x*2+68,$102a :rem s
+ 6514  if ro(x,y)=5 then wpoke$50000+y*160+x*2+68,$1050 :rem n-s
+ 6515  if ro(x,y)=6 then wpoke$50000+y*160+x*2+68,$1079 :rem s-e
+ 6516  if ro(x,y)=7 then wpoke$50000+y*160+x*2+68,$10a2 :rem n-e-s
+ 6517  if ro(x,y)=8 then wpoke$50000+y*160+x*2+68,$102b :rem w
+ 6518  if ro(x,y)=9 then wpoke$50000+y*160+x*2+68,$107b :rem n-w
+ 6519  if ro(x,y)=10then wpoke$50000+y*160+x*2+68,$1051 :rem w-e
+ 6520  if ro(x,y)=11then wpoke$50000+y*160+x*2+68,$10a0 :rem w-n-e
+ 6521  if ro(x,y)=12then wpoke$50000+y*160+x*2+68,$107a :rem w-s
+ 6522  if ro(x,y)=13then wpoke$50000+y*160+x*2+68,$10a3 :rem s-w-n
+ 6523  if ro(x,y)=14then wpoke$50000+y*160+x*2+68,$10a1 :rem e-s-w
+ 6524  if ro(x,y)=15then wpoke$50000+y*160+x*2+68,$1051 :rem need to add 4-way
+ 6530 rem poke$50000+y*160+x*2+70,$107a :rem test
  6600 next x
  6610 next y
  6620 return
- 6900 return
  6901 rem ------------------------------
  6999 rem === load palette
  7000 dopen#5,"palette32.pal"
@@ -110,3 +78,49 @@
  7060 loop
  7070 dclose#5
  7080 return
+ 7090 rem ------------------------------
+ 7099 rem ==== map generation ==========
+ 7100 sx=int(rnd(0)*5)+1:sy=int(rnd(0)*5)+1 :rem starting cell
+ 7105 for x=0to5
+ 7110 for y=0to5
+ 7115 vs(x,y)=0:ro(x,y)=0
+ 7120 next y
+ 7125 next x
+ 7130 rem room values 1n 2e 4s 8w 0,0 is upper left
+ 7135 ro(sx,sy)=int(rnd(0)*15)+1:vs(sx,sy)=1
+ 7136 if y=1 then ro(sx,sy)=ro(sx,sy)and(not(1)):rem clear doors to border
+ 7137 if y=5 then ro(sx,sy)=ro(sx,sy)and(not(4))
+ 7138 if x=1 then ro(sx,sy)=ro(sx,sy)and(not(8))
+ 7139 if x=5 then ro(sx,sy)=ro(sx,sy)and(not(2))
+ 7140 e=0: rem number of exits
+ 7145 if ro(sx,sy)and1 then e=e+1
+ 7150 if ro(sx,sy)and2 then e=e+1
+ 7155 if ro(sx,sy)and4 then e=e+1
+ 7160 if ro(sx,sy)and8 then e=e+1
+ 7165 if e<2 then 7135 :rem must be at least 2 exits from start cell
+ 7170 for r=1to5
+ 7175 for y=1to5
+ 7180 for x=1to5
+ 7200 if x=sx and y=sy then 7480: rem don't touch the start cell
+ 7210 if vs(x,y)=0 then begin
+ 7215 c=0
+ 7220  if(ro(x,y+1)and1)or(ro(x-1,y)and2)or(ro(x+1,y)and4)or(ro(x,y-1)and8) then ro(x,y)=int(rnd(0)*15)+1:vs(x,y)=1
+ 7230  if(ro(x,y+1)and1)then ro(x,y)=ro(x,y)or4:rem merge exits
+ 7232  if(ro(x+1,y)and8)then ro(x,y)=ro(x,y)or2
+ 7234  if(ro(x-1,y)and2)then ro(x,y)=ro(x,y)or8
+ 7236  if(ro(x,y-1)and4)then ro(x,y)=ro(x,y)or1
+ 7238 bend
+ 7480 next x
+ 7485 next y
+ 7490 next r
+ 7500 for y=1 to 5
+ 7510 for x=1 to 5
+ 7520 vs(x,y)=0
+ 7521 if y=1 then ro(x,y)=ro(x,y)and(not(1)):rem clear doors to border
+ 7522 if y=5 then ro(x,y)=ro(x,y)and(not(4))
+ 7523 if x=1 then ro(x,y)=ro(x,y)and(not(8))
+ 7524 if x=5 then ro(x,y)=ro(x,y)and(not(2))
+ 7530 next x
+ 7540 next y
+ 7549 rem end
+ 7550 return

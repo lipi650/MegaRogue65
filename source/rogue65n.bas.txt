@@ -1,0 +1,179 @@
+   40 dim rm(4,4), vs(4,4) : rem rooms, visited rooms
+   42 dim fx(24), fy(24)  : rem flood-fill stack
+   43 dim nv(0)  rem temporary neighbor value (2 chars)
+   45 sx=0:sy=0:ex=0:ey=0:kx=0:ky=0:cx=0:cy=0 :rem start,exit,key,current room
+   50 dim r(32):dim g(32): dim b(32): rem palette values
+   90 mem 1,3: screen clr
+   95 goto 120
+  100 gosub 7000 :rem load palette
+  105 bload"fcmchrs.chr",p($40000)
+  110 rem edma 0,64000,$8000000,$40000
+  115 gosub 5000: rem setup fcm-rrb environment
+  120 gosub 8000: rem set starting room and generate 5x5 map
+  130 rem gosub 6500: rem  draw map
+  870 getkey a$
+  874 gosub 5250: rem reset settings
+  875 palette restore
+  900 end
+ 4999 rem =========setup rrb environment===========
+ 5000 s1=wpeek($d062):s2=wpeek($d060): rem store screen pointer
+ 5010 rem ==== enable seam mode ====
+ 5020 setbit $d054,2: setbit $d054,0 :rem fclrhi, chr16
+ 5030 clrbit $d031,7: poke$d058,160:  rem set 40 column mode
+ 5040 wpoke $d060,$0000: wpoke $d062,$5:rem set screen pointer to $50000
+ 5050 cc=wpeek($d05e)
+ 5060 poke $d05e, 80: rem set chrcnt
+ 5070 rem ==========================
+ 5080 for i=0to1999*2 step2 :wpoke$50000+i,$0020:nexti:rem fill the whole screen.
+ 5090 for i=0to1999*2 step2 :wpoke$ff80000+i,$0300:nexti:rem fill colour ram
+ 5100 getkey a$
+ 5110 rem === gotox ($0090) move to column 40 ($28)
+ 5112 rem need to put a for-next loop to do it for all rows
+ 5120 wpoke $50050,$0028
+ 5130 wpoke $ff80050,$0090
+ 5140 rem ===layer a new character on the already printed one
+ 5150 wpoke $50052,$1000 : wpoke $50054,$1001 : wpoke $50056,$1002: wpoke $50058,$1003: wpoke $5005a,$1004: wpoke $5005c,$1005
+ 5152 wpoke $5005e,$1006 : wpoke $50060,$1007 :wpoke $50062,$1028: wpoke $50064,$1029
+ 5160 wpoke $ff80052,$0100
+ 5170 rem === close the line by gotox and position to the far right
+ 5180 rem === the line can be closed anywhere earlier (eg. from $50054)
+ 5190 wpoke $50096,$0140
+ 5200 wpoke $50098,$0000
+ 5210 wpoke $ff80096,$0010
+ 5220 wpoke $ff80098,$0000
+ 5225 return
+ 5230 getkey a$
+ 5240 rem ===== reset settings =====
+ 5250 wpoke $d060,$800: wpoke$d062,$0000
+ 5260 clrbit $d054,2: clrbit $d054,0 :rem fclrhi, chr16
+ 5270 setbit $d031,7: poke$d058,80 :rem 80 column mode
+ 5280 return
+ 6901 rem ------------------------------
+ 6999 rem === load palette
+ 7000 dopen#5,"palette32.pal"
+ 7010 i=0
+ 7020 do while i<32
+ 7030 get#5,r$,g$,b$
+ 7040 palette color i,asc(r$),asc(g$),asc(b$)
+ 7050 i=i+1
+ 7060 loop
+ 7070 dclose#5
+ 7080 return
+ 7090 rem ------------------------------
+8000 rem ==============================
+8005 rem 5x5 dungeon generator basic65 with secret doors
+8010 rem ==============================
+
+8040 sd = int(rnd(0)*256)
+
+8045 for y=0 to 4
+8050 for x=0 to 4
+8055 rm(x,y)=15
+8060 next x
+8065 next y
+
+8070 sx = int(rnd(0)*5)
+8075 sy = int(rnd(0)*5)
+
+8080 tr = 0
+
+8085 for at=1 to 80
+8090 sd = (sd*65 + 17) and 255
+8095 rv = sd
+
+8100 rx = rv and 7
+8105 if rx>4 then rx=rx-5
+8110 ry = (rv/8) and 7
+8115 if ry>4 then ry=ry-5
+
+8120 if rx=sx and ry=sy then 8195
+8125 if rm(rx,ry)=0 then 8195
+
+8130 ot = rm(rx,ry)
+8135 rm(rx,ry)=0
+
+8140 rem cut neighbor doors temporarily
+8145 if (ot and 1)<>0 and ry>0 then rm(rx,ry-1)=rm(rx,ry-1) and 11
+8150 if (ot and 2)<>0 and rx<4 then rm(rx+1,ry)=rm(rx+1,ry) and 7
+8155 if (ot and 4)<>0 and ry<4 then rm(rx,ry+1)=rm(rx,ry+1) and 14
+8160 if (ot and 8)<>0 and rx>0 then rm(rx-1,ry)=rm(rx-1,ry) and 13
+
+8165 rem ===============================
+8170 rem initialize visited
+8175 for y=0 to 4
+8180 for x=0 to 4
+8185 vs(x,y)=0
+8190 next x
+8195 next y
+
+8200 rc=0
+8205 sp=0
+8210 fx(sp)=sx
+8215 fy(sp)=sy
+8220 sp=sp+1
+
+8225 rem iterative flood fill loop
+8230 do while sp>0
+8235 sp=sp-1
+8240 cx=fx(sp)
+8245 cy=fy(sp)
+8250 if vs(cx,cy)<>0 then 8230
+8255 vs(cx,cy)=1
+8260 rc=rc+1
+
+8265 rem north
+8270 if cy>0 then begin
+8275   nv=rm(cx,cy-1)
+8280   if (rm(cx,cy) and 1)<>0 and nv<>0 and sp<24 then fx(sp)=cx:fy(sp)=cy-1:sp=sp+1
+8310 bend
+
+8315 rem east
+8320 if cx<4 then begin
+8325   nv=rm(cx+1,cy)
+8330   if (rm(cx,cy) and 2)<>0 and nv<>0 and sp<24 then fx(sp)=cx+1:fy(sp)=cy:sp=sp+1
+8355 bend
+
+8360 rem south
+8365 if cy<4 then begin
+8370   nv=rm(cx,cy+1)
+8375   if (rm(cx,cy) and 4)<>0 and nv<>0 and sp<24 then fx(sp)=cx:fy(sp)=cy+1:sp=sp+1
+8395 bend
+
+8400 rem west
+8405 if cx>0 then begin
+8410   nv=rm(cx-1,cy)
+8415   if (rm(cx,cy) and 8)<>0 and nv<>0 and sp<24 then fx(sp)=cx-1:fy(sp)=cy:sp=sp+1
+8440 bend
+
+8445 loop
+
+8450 rem check connectivity
+8455 if rc < (25-tr-1) then 8460
+8460 tr=tr+1
+8465 next at
+
+8470 rem ===============================
+8475 rem add secret doors
+8480 for y=0 to 4
+8485 for x=0 to 4
+8490 r=int(rnd(0)*100)
+8495 if r<10 then begin
+8500   if x<4 and rm(x+1,y)<>0 and (rm(x,y) and 2)=0 then rm(x,y)=rm(x,y)+16
+8505   if y<4 and rm(x,y+1)<>0 and (rm(x,y) and 4)=0 then rm(x,y)=rm(x,y)+16
+8510 bend
+8515 next x
+8520 next y
+
+8525 rem ===============================
+8530 rem print map
+8535 print
+8540 for y=0 to 4
+8545 for x=0 to 4
+8550 if rm(x,y)=0 then print "."; : goto 8555
+8555 if (rm(x,y) and 16)<>0 then print "s"; : goto 8560
+8560 print hex$(rm(x,y));
+8565 next x
+8570 print
+8575 next y
+
+8580 return

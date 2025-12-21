@@ -1,0 +1,231 @@
+10 rem 5x5 dungeon generator - basic65 safe, 2-char vars
+100 dim rm(4,4): dim ma(4,4): dim vs(4,4): dim pr(4,4)
+105 dim fx(25): dim fy(25)
+
+9000 rem ---- starting room ----
+9005 sx=int(rnd(0)*5): sy=int(rnd(0)*5)
+
+9010 rem ---- initialize mask ----
+9015 for y1=0 to 4
+9020 for x1=0 to 4
+9025 ma(x1,y1)=0: vs(x1,y1)=0: pr(x1,y1)=0: rm(x1,y1)=0
+9030 if x1>0 then ma(x1,y1)=ma(x1,y1) or 8
+9035 if x1<4 then ma(x1,y1)=ma(x1,y1) or 2
+9040 if y1<4 then ma(x1,y1)=ma(x1,y1) or 4
+9045 if y1>0 then ma(x1,y1)=ma(x1,y1) or 1
+9050 next x1
+9055 next y1
+
+9060 rem ---- random room removal ----
+9065 nr=int(rnd(0)*7)+5 : print "removed rooms aim:" nr
+9070 for i=1 to nr
+9075 do
+9080   xx=int(rnd(0)*5): yy=int(rnd(0)*5)
+9085 loop until (xx<>sx or yy<>sy) and ma(xx,yy)<>0
+
+9090 rem ---- save old masks ----
+9095 om=ma(xx,yy)
+9100 if xx>0 then oe=ma(xx-1,yy)
+9105 if xx<4 then ow=ma(xx+1,yy)
+9110 if yy>0 then os=ma(xx,yy-1)
+9115 if yy<4 then nn=ma(xx,yy+1)
+
+9120 rem ---- remove room ----
+9125 ma(xx,yy)=0
+9130 if xx>0 then ma(xx-1,yy)=ma(xx-1,yy) and 13
+9135 if xx<4 then ma(xx+1,yy)=ma(xx+1,yy) and 14
+9140 if yy>0 then ma(xx,yy-1)=ma(xx,yy-1) and 11
+9145 if yy<4 then ma(xx,yy+1)=ma(xx,yy+1) and 7
+
+9150 rem ---- connectivity check ----
+9155 for y2=0 to 4: for x2=0 to 4: vs(x2,y2)=0: next x2: next y2
+9160 sc=1: fx(sc)=sx: fy(sc)=sy: vs(sx,sy)=1
+9165 do while sc<>0
+9170   cx=fx(sc): cy=fy(sc): sc=sc-1
+
+9175   rem north
+9180   if cy>0 then begin
+9185     if ma(cx,cy) and 1 then begin
+9190       if ma(cx,cy-1)<>0 then begin
+9195         if vs(cx,cy-1)=0 then begin
+9200           sc=sc+1
+9205           fx(sc)=cx: fy(sc)=cy-1
+9210           vs(cx,cy-1)=1
+9215         bend
+9220       bend
+9225     bend
+9230   bend
+
+9235   rem east
+9240   if cx<4 then begin
+9245     if ma(cx,cy) and 2 then begin
+9250       if ma(cx+1,cy)<>0 then begin
+9255         if vs(cx+1,cy)=0 then begin
+9260           sc=sc+1
+9265           fx(sc)=cx+1: fy(sc)=cy
+9270           vs(cx+1,cy)=1
+9275         bend
+9280       bend
+9285     bend
+9290   bend
+
+9295   rem south
+9300   if cy<4 then begin
+9305     if ma(cx,cy) and 4 then begin
+9310       if ma(cx,cy+1)<>0 then begin
+9315         if vs(cx,cy+1)=0 then begin
+9320           sc=sc+1
+9325           fx(sc)=cx: fy(sc)=cy+1
+9330           vs(cx,cy+1)=1
+9335         bend
+9340       bend
+9345     bend
+9350   bend
+
+9355   rem west
+9360   if cx>0 then begin
+9365     if ma(cx,cy) and 8 then begin
+9370       if ma(cx-1,cy)<>0 then begin
+9375         if vs(cx-1,cy)=0 then begin
+9380           sc=sc+1
+9385           fx(sc)=cx-1: fy(sc)=cy
+9390           vs(cx-1,cy)=1
+9395         bend
+9400       bend
+9405     bend
+9410   bend
+
+9415 loop
+
+9420 rem ---- check connectivity ----
+9425 fail=0
+9430 for y2=0 to 4: for x2=0 to 4
+9435   if ma(x2,y2)<>0 and vs(x2,y2)=0 then fail=1
+9440 next x2: next y2
+
+9445 rem ---- undo removal if disconnected ----
+9450 if fail=1 then begin
+9455   ma(xx,yy)=om
+9460   if xx>0 then ma(xx-1,yy)=oe
+9465   if xx<4 then ma(xx+1,yy)=ow
+9470   if yy>0 then ma(xx,yy-1)=os
+9475   if yy<4 then ma(xx,yy+1)=nn
+9480 bend
+
+9485 next i
+
+9490 rem ---- dfs-based door assignment with full mirroring ----
+9495 for y2=0 to 4: for x2=0 to 4: vs(x2,y2)=0: rm(x2,y2)=0: pr(x2,y2)=0: next x2: next y2
+9500 sp=1: fx(sp)=sx: fy(sp)=sy: vs(sx,sy)=1
+
+9505 do while sp<>0
+9510   cx=fx(sp): cy=fy(sp): sp=sp-1
+
+9520 rem ---- connect neighbors with full mirroring ----
+
+9525   rem north
+9530   if cy>0 then begin
+9535     if ma(cx,cy) and 1 then begin
+9540       if ma(cx,cy-1)<>0 then begin
+9545         rm(cx,cy)=rm(cx,cy) or 1
+9550         rm(cx,cy-1)=rm(cx,cy-1) or 4
+9555       bend
+9560     bend
+9565   bend
+
+9570   rem east
+9575   if cx<4 then begin
+9580     if ma(cx,cy) and 2 then begin
+9585       if ma(cx+1,cy)<>0 then begin
+9590         rm(cx,cy)=rm(cx,cy) or 2
+9595         rm(cx+1,cy)=rm(cx+1,cy) or 8
+9600       bend
+9605     bend
+9610   bend
+
+9615   rem south
+9620   if cy<4 then begin
+9625     if ma(cx,cy) and 4 then begin
+9630       if ma(cx,cy+1)<>0 then begin
+9635         rm(cx,cy)=rm(cx,cy) or 4
+9640         rm(cx,cy+1)=rm(cx,cy+1) or 1
+9645       bend
+9650     bend
+9655   bend
+
+9660   rem west
+9665   if cx>0 then begin
+9670     if ma(cx,cy) and 8 then begin
+9675       if ma(cx-1,cy)<>0 then begin
+9680         rm(cx,cy)=rm(cx,cy) or 8
+9685         rm(cx-1,cy)=rm(cx-1,cy) or 2
+9690       bend
+9695     bend
+9700   bend
+
+9705 rem ---- push unvisited neighbors ----
+9710   rem north
+9715   if cy>0 then begin
+9720     if ma(cx,cy) and 1 then begin
+9725       if ma(cx,cy-1)<>0 then begin
+9730         if vs(cx,cy-1)=0 then begin
+9735           sp=sp+1
+9740           fx(sp)=cx: fy(sp)=cy-1
+9745           vs(cx,cy-1)=1
+9750         bend
+9755       bend
+9760     bend
+9765   bend
+
+9770   rem east
+9775   if cx<4 then begin
+9780     if ma(cx,cy) and 2 then begin
+9785       if ma(cx+1,cy)<>0 then begin
+9790         if vs(cx+1,cy)=0 then begin
+9795           sp=sp+1
+9800           fx(sp)=cx+1: fy(sp)=cy
+9805           vs(cx+1,cy)=1
+9810         bend
+9815       bend
+9820     bend
+9825   bend
+
+9830   rem south
+9835   if cy<4 then begin
+9840     if ma(cx,cy) and 4 then begin
+9845       if ma(cx,cy+1)<>0 then begin
+9850         if vs(cx,cy+1)=0 then begin
+9855           sp=sp+1
+9860           fx(sp)=cx: fy(sp)=cy+1
+9865           vs(cx,cy+1)=1
+9870         bend
+9875       bend
+9880     bend
+9885   bend
+
+9890   rem west
+9895   if cx>0 then begin
+9900     if ma(cx,cy) and 8 then begin
+9905       if ma(cx-1,cy)<>0 then begin
+9910         if vs(cx-1,cy)=0 then begin
+9915           sp=sp+1
+9920           fx(sp)=cx-1: fy(sp)=cy
+9925           vs(cx-1,cy)=1
+9930         bend
+9935       bend
+9940     bend
+9945   bend
+
+9950 vs(cx,cy)=1
+9955 pr(cx,cy)=1
+
+9960 loop
+
+9965 rem ---- print map ----
+9970 print "sx:";sx;" sy:";sy
+9975 for y1=0 to 4
+9980 for x1=0 to 4
+9985 print rm(x1,y1);
+9990 next x1
+9995 print
+10000 next y1
