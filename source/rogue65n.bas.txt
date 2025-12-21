@@ -1,7 +1,6 @@
-   40 dim rm(4,4), vs(4,4) : rem rooms, visited rooms
-   42 dim fx(24), fy(24)  : rem flood-fill stack
-   43 dim nv(0)  rem temporary neighbor value (2 chars)
-   45 sx=0:sy=0:ex=0:ey=0:kx=0:ky=0:cx=0:cy=0 :rem start,exit,key,current room
+10 rem --- variables, arrays ---
+20 dim rm(4,4): dim ma(4,4): dim vs(4,4): dim pr(4,4)
+25 dim fx(25): dim fy(25)
    50 dim r(32):dim g(32): dim b(32): rem palette values
    90 mem 1,3: screen clr
    95 goto 120
@@ -9,7 +8,7 @@
   105 bload"fcmchrs.chr",p($40000)
   110 rem edma 0,64000,$8000000,$40000
   115 gosub 5000: rem setup fcm-rrb environment
-  120 gosub 8000: rem set starting room and generate 5x5 map
+  120 gosub 9000: rem set starting room and generate 5x5 map
   130 rem gosub 6500: rem  draw map
   870 getkey a$
   874 gosub 5250: rem reset settings
@@ -60,120 +59,232 @@
  7070 dclose#5
  7080 return
  7090 rem ------------------------------
-8000 rem ==============================
-8005 rem 5x5 dungeon generator basic65 with secret doors
-8010 rem ==============================
 
-8040 sd = int(rnd(0)*256)
+9000 rem ---- starting room ----
+9005 sx=int(rnd(0)*5): sy=int(rnd(0)*5)
 
-8045 for y=0 to 4
-8050 for x=0 to 4
-8055 rm(x,y)=15
-8060 next x
-8065 next y
+9010 rem ---- initialize mask ----
+9015 for y1=0 to 4
+9020 for x1=0 to 4
+9025 ma(x1,y1)=0: vs(x1,y1)=0: pr(x1,y1)=0: rm(x1,y1)=0
+9030 if x1>0 then ma(x1,y1)=ma(x1,y1) or 8
+9035 if x1<4 then ma(x1,y1)=ma(x1,y1) or 2
+9040 if y1<4 then ma(x1,y1)=ma(x1,y1) or 4
+9045 if y1>0 then ma(x1,y1)=ma(x1,y1) or 1
+9050 next x1
+9055 next y1
 
-8070 sx = int(rnd(0)*5)
-8075 sy = int(rnd(0)*5)
+9060 rem ---- random room removal ----
+9065 nr=int(rnd(0)*7)+5 : print "removed rooms aim:" nr
+9070 for i=1 to nr
+9075 do
+9080   xx=int(rnd(0)*5): yy=int(rnd(0)*5)
+9085 loop until (xx<>sx or yy<>sy) and ma(xx,yy)<>0
 
-8080 tr = 0
+9090 rem ---- save old masks ----
+9095 om=ma(xx,yy)
+9100 if xx>0 then oe=ma(xx-1,yy)
+9105 if xx<4 then ow=ma(xx+1,yy)
+9110 if yy>0 then os=ma(xx,yy-1)
+9115 if yy<4 then nn=ma(xx,yy+1)
 
-8085 for at=1 to 80
-8090 sd = (sd*65 + 17) and 255
-8095 rv = sd
+9120 rem ---- remove room ----
+9125 ma(xx,yy)=0
+9130 if xx>0 then ma(xx-1,yy)=ma(xx-1,yy) and 13
+9135 if xx<4 then ma(xx+1,yy)=ma(xx+1,yy) and 14
+9140 if yy>0 then ma(xx,yy-1)=ma(xx,yy-1) and 11
+9145 if yy<4 then ma(xx,yy+1)=ma(xx,yy+1) and 7
 
-8100 rx = rv and 7
-8105 if rx>4 then rx=rx-5
-8110 ry = (rv/8) and 7
-8115 if ry>4 then ry=ry-5
+9150 rem ---- connectivity check ----
+9155 for y2=0 to 4: for x2=0 to 4: vs(x2,y2)=0: next x2: next y2
+9160 sc=1: fx(sc)=sx: fy(sc)=sy: vs(sx,sy)=1
+9165 do while sc<>0
+9170   cx=fx(sc): cy=fy(sc): sc=sc-1
 
-8120 if rx=sx and ry=sy then 8195
-8125 if rm(rx,ry)=0 then 8195
+9175   rem north
+9180   if cy>0 then begin
+9185     if ma(cx,cy) and 1 then begin
+9190       if ma(cx,cy-1)<>0 then begin
+9195         if vs(cx,cy-1)=0 then begin
+9200           sc=sc+1
+9205           fx(sc)=cx: fy(sc)=cy-1
+9210           vs(cx,cy-1)=1
+9215         bend
+9220       bend
+9225     bend
+9230   bend
 
-8130 ot = rm(rx,ry)
-8135 rm(rx,ry)=0
+9235   rem east
+9240   if cx<4 then begin
+9245     if ma(cx,cy) and 2 then begin
+9250       if ma(cx+1,cy)<>0 then begin
+9255         if vs(cx+1,cy)=0 then begin
+9260           sc=sc+1
+9265           fx(sc)=cx+1: fy(sc)=cy
+9270           vs(cx+1,cy)=1
+9275         bend
+9280       bend
+9285     bend
+9290   bend
 
-8140 rem cut neighbor doors temporarily
-8145 if (ot and 1)<>0 and ry>0 then rm(rx,ry-1)=rm(rx,ry-1) and 11
-8150 if (ot and 2)<>0 and rx<4 then rm(rx+1,ry)=rm(rx+1,ry) and 7
-8155 if (ot and 4)<>0 and ry<4 then rm(rx,ry+1)=rm(rx,ry+1) and 14
-8160 if (ot and 8)<>0 and rx>0 then rm(rx-1,ry)=rm(rx-1,ry) and 13
+9295   rem south
+9300   if cy<4 then begin
+9305     if ma(cx,cy) and 4 then begin
+9310       if ma(cx,cy+1)<>0 then begin
+9315         if vs(cx,cy+1)=0 then begin
+9320           sc=sc+1
+9325           fx(sc)=cx: fy(sc)=cy+1
+9330           vs(cx,cy+1)=1
+9335         bend
+9340       bend
+9345     bend
+9350   bend
 
-8165 rem ===============================
-8170 rem initialize visited
-8175 for y=0 to 4
-8180 for x=0 to 4
-8185 vs(x,y)=0
-8190 next x
-8195 next y
+9355   rem west
+9360   if cx>0 then begin
+9365     if ma(cx,cy) and 8 then begin
+9370       if ma(cx-1,cy)<>0 then begin
+9375         if vs(cx-1,cy)=0 then begin
+9380           sc=sc+1
+9385           fx(sc)=cx-1: fy(sc)=cy
+9390           vs(cx-1,cy)=1
+9395         bend
+9400       bend
+9405     bend
+9410   bend
 
-8200 rc=0
-8205 sp=0
-8210 fx(sp)=sx
-8215 fy(sp)=sy
-8220 sp=sp+1
+9415 loop
 
-8225 rem iterative flood fill loop
-8230 do while sp>0
-8235 sp=sp-1
-8240 cx=fx(sp)
-8245 cy=fy(sp)
-8250 if vs(cx,cy)<>0 then 8230
-8255 vs(cx,cy)=1
-8260 rc=rc+1
+9420 rem ---- check connectivity ----
+9425 fail=0
+9430 for y2=0 to 4: for x2=0 to 4
+9435   if ma(x2,y2)<>0 and vs(x2,y2)=0 then fail=1
+9440 next x2: next y2
 
-8265 rem north
-8270 if cy>0 then begin
-8275   nv=rm(cx,cy-1)
-8280   if (rm(cx,cy) and 1)<>0 and nv<>0 and sp<24 then fx(sp)=cx:fy(sp)=cy-1:sp=sp+1
-8310 bend
+9445 rem ---- undo removal if disconnected ----
+9450 if fail=1 then begin
+9455   ma(xx,yy)=om
+9460   if xx>0 then ma(xx-1,yy)=oe
+9465   if xx<4 then ma(xx+1,yy)=ow
+9470   if yy>0 then ma(xx,yy-1)=os
+9475   if yy<4 then ma(xx,yy+1)=nn
+9480 bend
 
-8315 rem east
-8320 if cx<4 then begin
-8325   nv=rm(cx+1,cy)
-8330   if (rm(cx,cy) and 2)<>0 and nv<>0 and sp<24 then fx(sp)=cx+1:fy(sp)=cy:sp=sp+1
-8355 bend
+9485 next i
 
-8360 rem south
-8365 if cy<4 then begin
-8370   nv=rm(cx,cy+1)
-8375   if (rm(cx,cy) and 4)<>0 and nv<>0 and sp<24 then fx(sp)=cx:fy(sp)=cy+1:sp=sp+1
-8395 bend
+9490 rem ---- dfs-based door assignment with full mirroring ----
+9495 for y2=0 to 4: for x2=0 to 4: vs(x2,y2)=0: rm(x2,y2)=0: pr(x2,y2)=0: next x2: next y2
+9500 sp=1: fx(sp)=sx: fy(sp)=sy: vs(sx,sy)=1
 
-8400 rem west
-8405 if cx>0 then begin
-8410   nv=rm(cx-1,cy)
-8415   if (rm(cx,cy) and 8)<>0 and nv<>0 and sp<24 then fx(sp)=cx-1:fy(sp)=cy:sp=sp+1
-8440 bend
+9505 do while sp<>0
+9510   cx=fx(sp): cy=fy(sp): sp=sp-1
 
-8445 loop
+9520 rem ---- connect neighbors with full mirroring ----
 
-8450 rem check connectivity
-8455 if rc < (25-tr-1) then 8460
-8460 tr=tr+1
-8465 next at
+9525   rem north
+9530   if cy>0 then begin
+9535     if ma(cx,cy) and 1 then begin
+9540       if ma(cx,cy-1)<>0 then begin
+9545         rm(cx,cy)=rm(cx,cy) or 1
+9550         rm(cx,cy-1)=rm(cx,cy-1) or 4
+9555       bend
+9560     bend
+9565   bend
 
-8470 rem ===============================
-8475 rem add secret doors
-8480 for y=0 to 4
-8485 for x=0 to 4
-8490 r=int(rnd(0)*100)
-8495 if r<10 then begin
-8500   if x<4 and rm(x+1,y)<>0 and (rm(x,y) and 2)=0 then rm(x,y)=rm(x,y)+16
-8505   if y<4 and rm(x,y+1)<>0 and (rm(x,y) and 4)=0 then rm(x,y)=rm(x,y)+16
-8510 bend
-8515 next x
-8520 next y
+9570   rem east
+9575   if cx<4 then begin
+9580     if ma(cx,cy) and 2 then begin
+9585       if ma(cx+1,cy)<>0 then begin
+9590         rm(cx,cy)=rm(cx,cy) or 2
+9595         rm(cx+1,cy)=rm(cx+1,cy) or 8
+9600       bend
+9605     bend
+9610   bend
 
-8525 rem ===============================
-8530 rem print map
-8535 print
-8540 for y=0 to 4
-8545 for x=0 to 4
-8550 if rm(x,y)=0 then print "."; : goto 8555
-8555 if (rm(x,y) and 16)<>0 then print "s"; : goto 8560
-8560 print hex$(rm(x,y));
-8565 next x
-8570 print
-8575 next y
+9615   rem south
+9620   if cy<4 then begin
+9625     if ma(cx,cy) and 4 then begin
+9630       if ma(cx,cy+1)<>0 then begin
+9635         rm(cx,cy)=rm(cx,cy) or 4
+9640         rm(cx,cy+1)=rm(cx,cy+1) or 1
+9645       bend
+9650     bend
+9655   bend
 
-8580 return
+9660   rem west
+9665   if cx>0 then begin
+9670     if ma(cx,cy) and 8 then begin
+9675       if ma(cx-1,cy)<>0 then begin
+9680         rm(cx,cy)=rm(cx,cy) or 8
+9685         rm(cx-1,cy)=rm(cx-1,cy) or 2
+9690       bend
+9695     bend
+9700   bend
+
+9705 rem ---- push unvisited neighbors ----
+9710   rem north
+9715   if cy>0 then begin
+9720     if ma(cx,cy) and 1 then begin
+9725       if ma(cx,cy-1)<>0 then begin
+9730         if vs(cx,cy-1)=0 then begin
+9735           sp=sp+1
+9740           fx(sp)=cx: fy(sp)=cy-1
+9745           vs(cx,cy-1)=1
+9750         bend
+9755       bend
+9760     bend
+9765   bend
+
+9770   rem east
+9775   if cx<4 then begin
+9780     if ma(cx,cy) and 2 then begin
+9785       if ma(cx+1,cy)<>0 then begin
+9790         if vs(cx+1,cy)=0 then begin
+9795           sp=sp+1
+9800           fx(sp)=cx+1: fy(sp)=cy
+9805           vs(cx+1,cy)=1
+9810         bend
+9815       bend
+9820     bend
+9825   bend
+
+9830   rem south
+9835   if cy<4 then begin
+9840     if ma(cx,cy) and 4 then begin
+9845       if ma(cx,cy+1)<>0 then begin
+9850         if vs(cx,cy+1)=0 then begin
+9855           sp=sp+1
+9860           fx(sp)=cx: fy(sp)=cy+1
+9865           vs(cx,cy+1)=1
+9870         bend
+9875       bend
+9880     bend
+9885   bend
+
+9890   rem west
+9895   if cx>0 then begin
+9900     if ma(cx,cy) and 8 then begin
+9905       if ma(cx-1,cy)<>0 then begin
+9910         if vs(cx-1,cy)=0 then begin
+9915           sp=sp+1
+9920           fx(sp)=cx-1: fy(sp)=cy
+9925           vs(cx-1,cy)=1
+9930         bend
+9935       bend
+9940     bend
+9945   bend
+
+9950 vs(cx,cy)=1
+9955 pr(cx,cy)=1
+
+9960 loop
+9962 return
+9965 rem ---- print map ----
+9970 print "sx:";sx;" sy:";sy
+9975 for y1=0 to 4
+9980 for x1=0 to 4
+9985 print rm(x1,y1);
+9990 next x1
+9995 print
+10000 next y1
+
