@@ -1,6 +1,8 @@
    10 rem --- variables, arrays ---
+   15 background 0: border 0
    20 dim rm(4,4): dim ma(4,4): dim vs(4,4): dim pr(4,4)
-   25 dim fx(25): dim fy(25)
+   25 dim fx(25): dim fy(25) : rem map generration stack
+   30 dim tl(9,9): rem tiles of the current room
    50 dim r(32):dim g(32): dim b(32): rem palette values
    90 mem 1,3: screen clr
    95 rem goto 120
@@ -10,6 +12,8 @@
   115 gosub 5000: rem setup fcm-rrb environment
   120 gosub 9005: rem set starting room and generate 5x5 map
   130 gosub 6500: rem  draw map
+  140 gosub 7100: rem load the tiles of the current room
+  150 gosub 8000: rem draw current room
   870 getkey a$
   874 gosub 5250: rem reset settings
   875 palette restore
@@ -18,28 +22,30 @@
  5000 s1=wpeek($d062):s2=wpeek($d060): rem store screen pointer
  5010 rem ==== enable seam mode ====
  5020 setbit $d054,2: setbit $d054,0 :rem fclrhi, chr16
- 5030 clrbit $d031,7: poke$d058,160:  rem set 40 column mode
+ 5030 clrbit $d031,7: ls=164: poke$d058,ls:  rem set 40 column mode,linestep
  5040 wpoke $d060,$0000: wpoke $d062,$5:rem set screen pointer to $50000
  5050 cc=wpeek($d05e)
  5060 poke $d05e, 80: rem set chrcnt
  5070 rem ==========================
- 5080 for i=0to1999*2 step2 :wpoke$50000+i,$0020:nexti:rem fill the whole screen.
- 5090 for i=0to1999*2 step2 :wpoke$ff80000+i,$0300:nexti:rem fill colour ram
- 5100 getkey a$
+ 5080 for i=0tols*25*2 step2 :wpoke$50000+i,$0020:nexti:rem fill the whole screen.
+ 5090 for i=0tols*25*2 step2 :wpoke$ff80000+i,$0300:nexti:rem fill colour ram
+ 5100 rem getkey a$
  5110 rem === gotox ($0090) move to column 40 ($28)
  5112 rem need to put a for-next loop to do it for all rows
- 5120 wpoke $50050,$0028
- 5130 wpoke $ff80050,$0090
+ 5115 for i=0to24
+ 5120 wpoke $50050+i*ls,$0000
+ 5130 wpoke $ff80050+i*ls,$0090
  5140 rem ===layer a new character on the already printed one
- 5150 wpoke $50052,$1000 : wpoke $50054,$1001 : wpoke $50056,$1002: wpoke $50058,$1003: wpoke $5005a,$1004: wpoke $5005c,$1005
- 5152 wpoke $5005e,$1006 : wpoke $50060,$1007 :wpoke $50062,$1028: wpoke $50064,$1029
- 5160 wpoke $ff80052,$0100
+ 5150 rem wpoke $50052,$1000 : wpoke $50054,$1001 : wpoke $50056,$1002: wpoke $50058,$1003: wpoke $5005a,$1004: wpoke $5005c,$1005
+ 5152 rem wpoke $5005e,$1006 : wpoke $50060,$1007 :wpoke $50062,$1028: wpoke $50064,$1029
+ 5160 rem wpoke $ff80052+i*160,$0100
  5170 rem === close the line by gotox and position to the far right
  5180 rem === the line can be closed anywhere earlier (eg. from $50054)
- 5190 wpoke $50096,$0140
- 5200 wpoke $50098,$0000
- 5210 wpoke $ff80096,$0010
- 5220 wpoke $ff80098,$0000
+ 5190 wpoke $50000+(1+i)*ls-2,$0140
+ 5200 rem wpoke $50002+(1+i)*ls-2,$0000
+ 5210 wpoke $ff80000+(1+i)*ls-2,$0010
+ 5220 rem wpoke $ff80002+(1+i)*ls-2,$0000
+ 5222 next i
  5225 return
  5230 getkey a$
  5240 rem ===== reset settings =====
@@ -50,10 +56,10 @@
  6499 rem === draw map ===
  6500 for y=0to4
  6505 for x=0to4
- 6510 wpoke $50000+2*(y+3)*80+x*2+70,$1004+rm(x,y)
+ 6510 wpoke $50000+(y+3)*ls+x*2+68,$1004+rm(x,y)
  6526 next x
  6527 next y
- 6530 wpoke $50000                  ,$1005 :rem test
+ 6530 rem wpoke $50000,$1053 :rem test
  6899 return
  6901 rem ------------------------------
  6999 rem === load palette
@@ -66,7 +72,40 @@
  7060 loop
  7070 dclose#5
  7080 return
- 7090 rem ------------------------------
+ 7090 rem ------ generate the current room -------
+ 7100 for y=0to9
+ 7110 for x=0to9
+ 7120 tl(x,y)=1
+ 7130 next x
+ 7140 next y
+ 7500 return
+ 7999 rem ------ draw the current room -------
+ 8000 for y=0to9
+ 8005 for x=0to9
+ 8006 rem the upper part of thee tiles go to the rrb screen mem
+ 8010 wpoke $50052+13*ls+(x-y)*ls+4*x+4*y       ,$1028
+ 8020 wpoke $50054+13*ls+(x-y)*ls+4*x+4*y       ,$1029
+ 8030 wpoke $50056+13*ls+(x-y)*ls+4*x+4*y       ,$102a
+ 8040 wpoke $50058+13*ls+(x-y)*ls+4*x+4*y       ,$102b
+ 8041 next x:next y
+ 8042 for y=0to9
+ 8043 for x=0to9
+ 8045 rem the lowest part goes to the non-rrb-screen
+ 8050 wpoke $50000+15*ls+(x-y)*ls+4*x+4*y       ,$1078
+ 8052 wpoke $50002+15*ls+(x-y)*ls+4*x+4*y       ,$1079
+ 8054 wpoke $50004+15*ls+(x-y)*ls+4*x+4*y       ,$107a
+ 8056 wpoke $50006+15*ls+(x-y)*ls+4*x+4*y       ,$107b
+ 8058 next x:next y
+ 8060 rem add another layer above
+ 8066 for y=0to9
+ 8067 for x=0to9
+ 8070 wpoke $50000+14*ls+(x-y)*ls+4*x+4*y       ,$1050
+ 8075 wpoke $50002+14*ls+(x-y)*ls+4*x+4*y       ,$1051
+ 8080 wpoke $50004+14*ls+(x-y)*ls+4*x+4*y       ,$1052
+ 8085 wpoke $50006+14*ls+(x-y)*ls+4*x+4*y       ,$1053
+ 8090 next x
+ 8095 next y
+ 8990 return
  9000 rem ---- starting room ----
  9005 sx=int(rnd(0)*5): sy=int(rnd(0)*5)
  9010 rem ---- initialize mask ----
