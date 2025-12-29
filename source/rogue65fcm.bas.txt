@@ -3,6 +3,7 @@
    20 dim rm(4,4): dim ma(4,4): dim vs(4,4): dim pr(4,4)
    25 dim fx(25): dim fy(25) : rem map generration stack
    30 dim tl(9,9): rem tiles of the current room
+   35 rem kx, ky, sx, sy current room and starting room
    50 dim r(32):dim g(32): dim b(32): rem palette values
    90 mem 1,3: screen clr
    95 rem goto 120
@@ -11,8 +12,10 @@
   110 rem edma 0,64000,$8000000,$40000
   115 gosub 5000: rem setup fcm-rrb environment
   120 gosub 9005: rem set starting room and generate 5x5 map
+  125 kx=sx: ky=sy :rem set current room to starting room
   130 gosub 6500: rem  draw map
   140 gosub 7100: rem load the tiles of the current room
+  145 gosub 7500: rem draw doors of current room
   150 gosub 8000: rem draw current room
   870 getkey a$
   874 gosub 5250: rem reset settings
@@ -78,7 +81,47 @@
  7120 tl(x,y)=1
  7130 next x
  7140 next y
- 7500 return
+ 7490 rem ---- draw doors of current room ----
+ 7500 if rm(kx,ky)and1 then begin: rem door to north
+ 7502   wpoke $50010+9*ls,$12f8: wpoke$50012+9*ls,$12f9
+ 7504   wpoke $50010+8*ls,$12d0: wpoke$50012+8*ls,$12d1
+ 7506   wpoke $50014+8*ls,$12d2: wpoke$50016+8*ls,$12d3
+ 7508   wpoke $50010+7*ls,$12a8
+ 7510   wpoke $50014+7*ls,$12aa: wpoke$50016+7*ls,$12ab
+ 7512   wpoke $50010+6*ls,$1280
+ 7514   wpoke $50014+6*ls,$1282: wpoke$50016+6*ls,$1283
+ 7516   wpoke $50010+5*ls,$1258
+ 7518   wpoke $50014+5*ls,$125a: wpoke$50016+5*ls,$125b
+ 7520   wpoke $50010+4*ls,$1230: wpoke$50012+4*ls,$1231
+ 7522   wpoke $50014+4*ls,$1232: wpoke$50016+4*ls,$1233
+ 7524   wpoke $50010+3*ls,$1208: wpoke$50012+3*ls,$1209
+ 7526   wpoke $50014+3*ls,$120a: wpoke$50016+3*ls,$120b
+ 7528 bend
+ 7530 if rm(kx,ky)and2 then begin: rem door to east
+ 7532   wpoke $5003c+9*ls,$12fe: wpoke$5003e+9*ls,$12ff
+ 7534   wpoke $50038+8*ls,$12d4: wpoke$5003a+8*ls,$12d5
+ 7536   wpoke $5003c+8*ls,$12d6: wpoke$5003e+8*ls,$12d7
+ 7538                            wpoke$5003e+7*ls,$12af
+ 7540   wpoke $50038+7*ls,$12ac: wpoke$5003a+7*ls,$12ad
+ 7542                            wpoke$5003e+6*ls,$1287
+ 7544   wpoke $50038+6*ls,$1284: wpoke$5003a+6*ls,$1285
+ 7546                            wpoke$5003e+5*ls,$125f
+ 7548   wpoke $50038+5*ls,$125c: wpoke$5003a+5*ls,$125d
+ 7550   wpoke $5003c+4*ls,$1236: wpoke$5003e+4*ls,$1237
+ 7552   wpoke $50038+4*ls,$1234: wpoke$5003a+4*ls,$1235
+ 7554   wpoke $5003c+3*ls,$120e: wpoke$5003e+3*ls,$120f
+ 7556   wpoke $50038+3*ls,$120c: wpoke$5003a+3*ls,$120d
+ 7558 bend
+ 7560 if rm(kx,ky)and4 then begin: rem door to south, drawn on rrb area
+ 7562   wpoke$5008a+19*ls,$1320: wpoke$5008c+19*ls,$1321: wpoke$5008e+19*ls,$1322
+ 7564   wpoke$5008e+18*ls,$12fa: wpoke$50090+18*ls,$12fb
+ 7570 bend
+ 7572 if rm(kx,ky)and8 then begin: rem door to west
+ 7574   border 1
+ 7576   wpoke$50062+18*ls,$12fc: wpoke$50064+18*ls,$12fd
+ 7578   wpoke$50064+19*ls,$1325: wpoke$50066+19*ls,$1326:wpoke$50068+19*ls,$1327
+ 7598 bend
+ 7990 return
  7999 rem ------ draw the current room -------
  8000 for y=0to9
  8005 for x=0to9
