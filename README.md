@@ -1,7 +1,10 @@
 # MegaRogue65
 An isometric Rougelike game (and the required basic tools to make the game) for the Mega65 computer. Using FCM (Full Colour Mode) character mode and RRB (Raster-rewrite Buffer) techniques in BASIC65.
 
-Under construction.
+Under construction. The current status is the following: A random map creation has been implemented but the rooms still have all possible doors so it could be enhanced with randomly taking away doors (and adding a flood-fill check to verify that the rooms are still accessible). The rooms at this stage have only one type of tiles and the doors are displayed.
+
+Update 22026.01.01.: The soon arriving Mega65 version of the original Roguecraft game has been announced, so it makes no sense to develop this Rougecraft-inspired game forward in the same direction.
+I will keep this project alive but might change the game concept. The basics of the isometric layout could be useful in developing different isometric games.
 
 ## Tools:
 
