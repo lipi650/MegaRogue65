@@ -4,6 +4,7 @@
    25 dim fx(25): dim fy(25) : rem map generration stack
    30 dim tl(9,9): rem tiles of the current room
    35 rem kx, ky, sx, sy current room and starting room
+   36 rem tx,ty are the tiles checked for plr movement
    40 px=0: py=0: rem player tile coordinates
    50 dim r(32):dim g(32): dim b(32): rem palette values
    90 mem 1,3: screen clr
@@ -11,7 +12,6 @@
   100 gosub 7000 :rem load palette
   105 bload"fcmchrs.chr",p($40000)
   115 gosub 5000: rem setup fcm-rrb environment
-  117 gosub 8500: rem set player sprite
   120 gosub 9005: rem set starting room and generate 5x5 map
   125 kx=sx: ky=sy :rem set current room to starting room
   130 gosub 6500: rem  draw map
@@ -19,9 +19,15 @@
   145 gosub 7500: rem draw doors of current room
   150 gosub 8000: rem draw current room
   160 gosub 8500: rem draw player
+  190 tl=0 : rem turn lock
   199 rem ---- main loop ----
-  200 getkey a$
-  400 if a$="q" then 874
+  200 vsync100:border 7
+  203 get a$
+  205 if a$="q" then 874
+  210 j=joy(2)
+  220 if(tl=0)and(jand127>0)then gosub 6000: rem player movement
+  230 gosub 8515: rem draw player
+  499 border 0
   500 goto 200
   870 getkey a$
   874 gosub 5250: rem reset settings
@@ -62,6 +68,22 @@
  5260 clrbit $d054,2: clrbit $d054,0 :rem fclrhi, chr16
  5270 printchr$(27)+"8": poke$d058,80 :rem 80 column mode , setbit $d031,7
  5280 return
+ 5999 rem ---- player movement ----
+ 6000 tl=1
+ 6001 if((jand127)=1)and(py>0)then begin: rem north
+ 6015   if tl(px,py-1)>0 then py=py-1 :j=0
+ 6020 bend
+ 6030 if((jand127)=3)and(px<9)then begin: rem east
+ 6045   if tl(px+1,py)>0 then px=px+1 :j=0
+ 6050 bend
+ 6060 if((jand127)=5)and(py<9)then begin: rem south
+ 6075   if tl(px,py+1)>0 then py=py+1 :j=0
+ 6080 bend
+ 6090 if((jand127)=7)and(px>0)then begin: rem west
+ 6105   if tl(px-1,py)>0 then px=px-1 :j=0
+ 6110 bend
+ 6480 tl=0
+ 6490 return
  6499 rem === draw map ===
  6500 for y=0to4
  6505 for x=0to4
@@ -123,7 +145,6 @@
  7564   wpoke$5008e+18*ls,$12fa: wpoke$50090+18*ls,$12fb
  7570 bend
  7572 if rm(kx,ky)and8 then begin: rem door to west
- 7574   border 1
  7576   wpoke$50062+18*ls,$12fc: wpoke$50064+18*ls,$12fd
  7578   wpoke$50064+19*ls,$1325: wpoke$50066+19*ls,$1326:wpoke$50068+19*ls,$1327
  7598 bend
@@ -156,12 +177,11 @@
  8095 next y
  8490 return
  8499 rem ---- draw player sprite ----
- 8500 pt=peek($d06d)*256+peek($d06c)
- 8510 sprite load "plrmono.spr"
- 8515 movspr 0,32+px,144+py
- 8516 movspr 1,32+px,144+py
- 8520 sprite 0,1,1,0,0,0,0
- 8521 sprite 1,1,2,0,0,0,0
+ 8500 sprite load "plrmono.spr"
+ 8505 sprite 0,1,1,0,0,0,0
+ 8506 sprite 1,1,2,0,0,0,0
+ 8515 movspr 0,32+(px+py)*16,144+(py-px)*8
+ 8516 movspr 1,32+(px+py)*16,144+(py-px)*8
  8990 return
  9000 rem ---- starting room ----
  9005 sx=int(rnd(0)*5): sy=int(rnd(0)*5)
