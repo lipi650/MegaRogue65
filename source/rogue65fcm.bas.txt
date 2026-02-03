@@ -1,3 +1,4 @@
+    0 :rem test normal char
    10 rem --- variables, arrays ---
    15 background 0: border 0
    20 dim rm(4,4): dim ma(4,4): dim vs(4,4): dim pr(4,4)
@@ -7,7 +8,7 @@
    36 rem tx,ty are the tiles checked for plr movement
    40 px=0: py=0: rem player tile coordinates
    50 dim r(32):dim g(32): dim b(32): rem palette values
-   90 mem 1,3: screen clr
+   90 swap 1,3: screen clr
    95 rem goto 120
   100 gosub 7000 :rem load palette
   105 bload"fcmchrs.chr",p($40000)
@@ -21,7 +22,7 @@
   160 gosub 8500: rem draw player
   190 tl=0 : rem turn lock
   199 rem ---- main loop ----
-  200 vsync100:border 7
+  200 ($fe54)100:border 7
   203 get a$
   205 if a$="q" then 874
   210 j=joy(2)
@@ -34,38 +35,38 @@
   875 palette restore
   900 end
  4999 rem =========setup rrb environment===========
- 5000 s1=wpeek($d062):s2=wpeek($d060): rem store screen pointer
+ 5000 s1=($ce10)($d062):s2=($ce10)($d060): rem store screen pointer
  5010 rem ==== enable seam mode ====
- 5020 setbit $d054,2: setbit $d054,0 :rem fclrhi, chr16
+ 5020 set($fe4e) $d054,2: set($fe4e) $d054,0 :rem fclrhi, chr16
  5030 printchr$(27)+"4": ls=164: poke$d058,ls:  rem clearbit $d031,7 set 40 column mode,linestep
- 5040 wpoke $d060,$0000: wpoke $d062,$5:rem set screen pointer to $50000
- 5050 cc=wpeek($d05e)
- 5060 poke $d05e, 80: rem set chrcnt
+ 5040 sprdef $d060,$0000: sprdef $d062,$5:rem set screen pointer to $50000
+ 5050 cc=($ce10)($d05e)
+ 5060 poke $d05e, 81: rem set chrcnt (don't know why not 80)
  5070 rem ==========================
- 5080 for i=0tols*25*2 step2 :wpoke$50000+i,$0020:nexti:rem fill the whole screen.
- 5090 for i=0tols*25*2 step2 :wpoke$ff80000+i,$0300:nexti:rem fill colour ram
+ 5080 for i=0tols*25*2 step2 :sprdef$50000+i,$0020:nexti:rem fill the whole screen.
+ 5090 for i=0tols*25*2 step2 :sprdef$ff80000+i,$0300:nexti:rem fill colour ram
  5100 rem getkey a$
  5110 rem === gotox ($0090) move to column 40 ($28)
  5112 rem need to put a for-next loop to do it for all rows
  5115 for i=0to24
- 5120 wpoke $50050+i*ls,$0000
- 5130 wpoke $ff80050+i*ls,$0090
+ 5120 sprdef $50050+i*ls,$0000
+ 5130 sprdef $ff80050+i*ls,$0090
  5140 rem ===layer a new character on the already printed one
  5150 rem wpoke $50052,$1000 : wpoke $50054,$1001 : wpoke $50056,$1002: wpoke $50058,$1003: wpoke $5005a,$1004: wpoke $5005c,$1005
  5152 rem wpoke $5005e,$1006 : wpoke $50060,$1007 :wpoke $50062,$1028: wpoke $50064,$1029
  5160 rem wpoke $ff80052+i*160,$0100
  5170 rem === close the line by gotox and position to the far right
  5180 rem === the line can be closed anywhere earlier (eg. from $50054)
- 5190 wpoke $50000+(1+i)*ls-2,$0140
+ 5190 sprdef $50000+(1+i)*ls-2,$0140
  5200 rem wpoke $50002+(1+i)*ls-2,$0000
- 5210 wpoke $ff80000+(1+i)*ls-2,$0010
+ 5210 sprdef $ff80000+(1+i)*ls-2,$0010
  5220 rem wpoke $ff80002+(1+i)*ls-2,$0000
  5222 next i
  5225 return
  5230 getkey a$
  5240 rem ===== reset settings =====
- 5250 wpoke $d060,$800: wpoke$d062,$0000
- 5260 clrbit $d054,2: clrbit $d054,0 :rem fclrhi, chr16
+ 5250 sprdef $d060,$800: sprdef$d062,$0000
+ 5260 clr($fe4e) $d054,2: clr($fe4e) $d054,0 :rem fclrhi, chr16
  5270 printchr$(27)+"8": poke$d058,80 :rem 80 column mode , setbit $d031,7
  5280 return
  5999 rem ---- player movement ----
@@ -87,7 +88,7 @@
  6499 rem === draw map ===
  6500 for y=0to4
  6505 for x=0to4
- 6510 wpoke $50000+(y+3)*ls+x*2+68,$1004+rm(x,y)
+ 6510 sprdef $50000+(y+3)*ls+x*2+68,$1004+rm(x,y)
  6526 next x
  6527 next y
  6530 rem wpoke $50000,$1053 :rem test
@@ -111,68 +112,68 @@
  7140 next y
  7490 rem ---- draw doors of current room ----
  7500 if rm(kx,ky)and1 then begin: rem door to north
- 7502   wpoke $50010+9*ls,$12f8: wpoke$50012+9*ls,$12f9
- 7504   wpoke $50010+8*ls,$12d0: wpoke$50012+8*ls,$12d1
- 7506   wpoke $50014+8*ls,$12d2: wpoke$50016+8*ls,$12d3
- 7508   wpoke $50010+7*ls,$12a8
- 7510   wpoke $50014+7*ls,$12aa: wpoke$50016+7*ls,$12ab
- 7512   wpoke $50010+6*ls,$1280
- 7514   wpoke $50014+6*ls,$1282: wpoke$50016+6*ls,$1283
- 7516   wpoke $50010+5*ls,$1258
- 7518   wpoke $50014+5*ls,$125a: wpoke$50016+5*ls,$125b
- 7520   wpoke $50010+4*ls,$1230: wpoke$50012+4*ls,$1231
- 7522   wpoke $50014+4*ls,$1232: wpoke$50016+4*ls,$1233
- 7524   wpoke $50010+3*ls,$1208: wpoke$50012+3*ls,$1209
- 7526   wpoke $50014+3*ls,$120a: wpoke$50016+3*ls,$120b
+ 7502   sprdef $50010+9*ls,$12f8: sprdef$50012+9*ls,$12f9
+ 7504   sprdef $50010+8*ls,$12d0: sprdef$50012+8*ls,$12d1
+ 7506   sprdef $50014+8*ls,$12d2: sprdef$50016+8*ls,$12d3
+ 7508   sprdef $50010+7*ls,$12a8
+ 7510   sprdef $50014+7*ls,$12aa: sprdef$50016+7*ls,$12ab
+ 7512   sprdef $50010+6*ls,$1280
+ 7514   sprdef $50014+6*ls,$1282: sprdef$50016+6*ls,$1283
+ 7516   sprdef $50010+5*ls,$1258
+ 7518   sprdef $50014+5*ls,$125a: sprdef$50016+5*ls,$125b
+ 7520   sprdef $50010+4*ls,$1230: sprdef$50012+4*ls,$1231
+ 7522   sprdef $50014+4*ls,$1232: sprdef$50016+4*ls,$1233
+ 7524   sprdef $50010+3*ls,$1208: sprdef$50012+3*ls,$1209
+ 7526   sprdef $50014+3*ls,$120a: sprdef$50016+3*ls,$120b
  7528 bend
  7530 if rm(kx,ky)and2 then begin: rem door to east
- 7532   wpoke $5003c+9*ls,$12fe: wpoke$5003e+9*ls,$12ff
- 7534   wpoke $50038+8*ls,$12d4: wpoke$5003a+8*ls,$12d5
- 7536   wpoke $5003c+8*ls,$12d6: wpoke$5003e+8*ls,$12d7
- 7538                            wpoke$5003e+7*ls,$12af
- 7540   wpoke $50038+7*ls,$12ac: wpoke$5003a+7*ls,$12ad
- 7542                            wpoke$5003e+6*ls,$1287
- 7544   wpoke $50038+6*ls,$1284: wpoke$5003a+6*ls,$1285
- 7546                            wpoke$5003e+5*ls,$125f
- 7548   wpoke $50038+5*ls,$125c: wpoke$5003a+5*ls,$125d
- 7550   wpoke $5003c+4*ls,$1236: wpoke$5003e+4*ls,$1237
- 7552   wpoke $50038+4*ls,$1234: wpoke$5003a+4*ls,$1235
- 7554   wpoke $5003c+3*ls,$120e: wpoke$5003e+3*ls,$120f
- 7556   wpoke $50038+3*ls,$120c: wpoke$5003a+3*ls,$120d
+ 7532   sprdef $5003c+9*ls,$12fe: sprdef$5003e+9*ls,$12ff
+ 7534   sprdef $50038+8*ls,$12d4: sprdef$5003a+8*ls,$12d5
+ 7536   sprdef $5003c+8*ls,$12d6: sprdef$5003e+8*ls,$12d7
+ 7538                            sprdef$5003e+7*ls,$12af
+ 7540   sprdef $50038+7*ls,$12ac: sprdef$5003a+7*ls,$12ad
+ 7542                            sprdef$5003e+6*ls,$1287
+ 7544   sprdef $50038+6*ls,$1284: sprdef$5003a+6*ls,$1285
+ 7546                            sprdef$5003e+5*ls,$125f
+ 7548   sprdef $50038+5*ls,$125c: sprdef$5003a+5*ls,$125d
+ 7550   sprdef $5003c+4*ls,$1236: sprdef$5003e+4*ls,$1237
+ 7552   sprdef $50038+4*ls,$1234: sprdef$5003a+4*ls,$1235
+ 7554   sprdef $5003c+3*ls,$120e: sprdef$5003e+3*ls,$120f
+ 7556   sprdef $50038+3*ls,$120c: sprdef$5003a+3*ls,$120d
  7558 bend
  7560 if rm(kx,ky)and4 then begin: rem door to south, drawn on rrb area
- 7562   wpoke$5008a+19*ls,$1320: wpoke$5008c+19*ls,$1321: wpoke$5008e+19*ls,$1322
- 7564   wpoke$5008e+18*ls,$12fa: wpoke$50090+18*ls,$12fb
+ 7562   sprdef$5008a+19*ls,$1320: sprdef$5008c+19*ls,$1321: sprdef$5008e+19*ls,$1322
+ 7564   sprdef$5008e+18*ls,$12fa: sprdef$50090+18*ls,$12fb
  7570 bend
  7572 if rm(kx,ky)and8 then begin: rem door to west
- 7576   wpoke$50062+18*ls,$12fc: wpoke$50064+18*ls,$12fd
- 7578   wpoke$50064+19*ls,$1325: wpoke$50066+19*ls,$1326:wpoke$50068+19*ls,$1327
+ 7576   sprdef$50062+18*ls,$12fc: sprdef$50064+18*ls,$12fd
+ 7578   sprdef$50064+19*ls,$1325: sprdef$50066+19*ls,$1326:sprdef$50068+19*ls,$1327
  7598 bend
  7990 return
  7999 rem ------ draw the current room -------
  8000 for y=0to9
  8005 for x=0to9
  8006 rem the upper part of thee tiles go to the rrb screen mem
- 8010 wpoke $50052+13*ls+(x-y)*ls+4*x+4*y       ,$1028
- 8020 wpoke $50054+13*ls+(x-y)*ls+4*x+4*y       ,$1029
- 8030 wpoke $50056+13*ls+(x-y)*ls+4*x+4*y       ,$102a
- 8040 wpoke $50058+13*ls+(x-y)*ls+4*x+4*y       ,$102b
+ 8010 sprdef $50052+13*ls+(x-y)*ls+4*x+4*y       ,$1028
+ 8020 sprdef $50054+13*ls+(x-y)*ls+4*x+4*y       ,$1029
+ 8030 sprdef $50056+13*ls+(x-y)*ls+4*x+4*y       ,$102a
+ 8040 sprdef $50058+13*ls+(x-y)*ls+4*x+4*y       ,$102b
  8041 next x:next y
  8042 for y=0to9
  8043 for x=0to9
  8045 rem the lowest part goes to the non-rrb-screen
- 8050 wpoke $50000+15*ls+(x-y)*ls+4*x+4*y       ,$1078
- 8052 wpoke $50002+15*ls+(x-y)*ls+4*x+4*y       ,$1079
- 8054 wpoke $50004+15*ls+(x-y)*ls+4*x+4*y       ,$107a
- 8056 wpoke $50006+15*ls+(x-y)*ls+4*x+4*y       ,$107b
+ 8050 sprdef $50000+15*ls+(x-y)*ls+4*x+4*y       ,$1078
+ 8052 sprdef $50002+15*ls+(x-y)*ls+4*x+4*y       ,$1079
+ 8054 sprdef $50004+15*ls+(x-y)*ls+4*x+4*y       ,$107a
+ 8056 sprdef $50006+15*ls+(x-y)*ls+4*x+4*y       ,$107b
  8058 next x:next y
  8060 rem add another layer above
  8066 for y=0to9
  8067 for x=0to9
- 8070 wpoke $50000+14*ls+(x-y)*ls+4*x+4*y       ,$1050
- 8075 wpoke $50002+14*ls+(x-y)*ls+4*x+4*y       ,$1051
- 8080 wpoke $50004+14*ls+(x-y)*ls+4*x+4*y       ,$1052
- 8085 wpoke $50006+14*ls+(x-y)*ls+4*x+4*y       ,$1053
+ 8070 sprdef $50000+14*ls+(x-y)*ls+4*x+4*y       ,$1050
+ 8075 sprdef $50002+14*ls+(x-y)*ls+4*x+4*y       ,$1051
+ 8080 sprdef $50004+14*ls+(x-y)*ls+4*x+4*y       ,$1052
+ 8085 sprdef $50006+14*ls+(x-y)*ls+4*x+4*y       ,$1053
  8090 next x
  8095 next y
  8490 return
